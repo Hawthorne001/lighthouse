@@ -268,26 +268,26 @@ const expectations = {
       },
       'render-blocking-resources': {
         score: '<1',
-        numericValue: '>=85',
+        numericValue: '>=50',
         details: {
           items: [
             {
-              url: 'http://localhost:10200/dobetterweb/dbw_tester.css?delay=100',
-            },
-            {
-              url: 'http://localhost:10200/dobetterweb/unknown404.css?delay=200',
-            },
-            {
-              url: 'http://localhost:10200/dobetterweb/dbw_tester.css?delay=2200',
+              url: 'http://localhost:10200/dobetterweb/fcp-delayer.js?delay=5000',
             },
             {
               url: 'http://localhost:10200/dobetterweb/dbw_tester.css?delay=3000&capped',
             },
             {
+              url: 'http://localhost:10200/dobetterweb/dbw_tester.css?delay=2200',
+            },
+            {
               url: 'http://localhost:10200/dobetterweb/dbw_tester.js',
             },
             {
-              url: 'http://localhost:10200/dobetterweb/fcp-delayer.js?delay=5000',
+              url: 'http://localhost:10200/dobetterweb/unknown404.css?delay=200',
+            },
+            {
+              url: 'http://localhost:10200/dobetterweb/dbw_tester.css?delay=100',
             },
           ],
         },

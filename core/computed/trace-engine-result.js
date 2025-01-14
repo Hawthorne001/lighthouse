@@ -4,24 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import * as i18n from '../lib/i18n/i18n.js';
 import * as TraceEngine from '../lib/trace-engine.js';
 import {makeComputedArtifact} from './computed-artifact.js';
 import {CumulativeLayoutShift} from './metrics/cumulative-layout-shift.js';
 import {ProcessedTrace} from './processed-trace.js';
 import * as LH from '../../types/lh.js';
-
-/** @typedef {typeof ENABLED_HANDLERS} EnabledHandlers */
-
-const ENABLED_HANDLERS = {
-  AuctionWorklets: TraceEngine.TraceHandlers.AuctionWorklets,
-  Initiators: TraceEngine.TraceHandlers.Initiators,
-  LayoutShifts: TraceEngine.TraceHandlers.LayoutShifts,
-  NetworkRequests: TraceEngine.TraceHandlers.NetworkRequests,
-  Renderer: TraceEngine.TraceHandlers.Renderer,
-  Samples: TraceEngine.TraceHandlers.Samples,
-  Screenshots: TraceEngine.TraceHandlers.Screenshots,
-  PageLoadMetrics: TraceEngine.TraceHandlers.PageLoadMetrics,
-};
 
 /**
  * @fileoverview Processes trace with the shared trace engine.
@@ -32,15 +20,40 @@ class TraceEngineResult {
    * @return {Promise<LH.Artifacts.TraceEngineResult>}
    */
   static async runTraceEngine(traceEvents) {
-    const engine = new TraceEngine.TraceProcessor(ENABLED_HANDLERS);
+    const processor = new TraceEngine.TraceProcessor(TraceEngine.TraceHandlers);
+
     // eslint-disable-next-line max-len
-    await engine.parse(/** @type {import('@paulirish/trace_engine').Types.TraceEvents.TraceEventData[]} */ (
+    await processor.parse(/** @type {import('@paulirish/trace_engine').Types.Events.Event[]} */ (
       traceEvents
-    ));
-    // TODO: use TraceEngine.TraceProcessor.createWithAllHandlers above.
-    if (!engine.traceParsedData) throw new Error('No data');
-    if (!engine.insights) throw new Error('No insights');
-    return {data: engine.traceParsedData, insights: engine.insights};
+    ), {});
+    if (!processor.parsedTrace) throw new Error('No data');
+    if (!processor.insights) throw new Error('No insights');
+    this.localizeInsights(processor.insights);
+    return {data: processor.parsedTrace, insights: processor.insights};
+  }
+
+  /**
+   * @param {import('@paulirish/trace_engine/models/trace/insights/types.js').TraceInsightSets} insightSets
+   */
+  static localizeInsights(insightSets) {
+    for (const insightSet of insightSets.values()) {
+      for (const [name, model] of Object.entries(insightSet.model)) {
+        if (model instanceof Error) {
+          continue;
+        }
+
+        const key = `node_modules/@paulirish/trace_engine/models/trace/insights/${name}.js`;
+        const str_ = i18n.createIcuMessageFn(key, {
+          title: model.title,
+          description: model.description,
+        });
+
+        // @ts-expect-error coerce to string, should be fine
+        model.title = str_(model.title);
+        // @ts-expect-error coerce to string, should be fine
+        model.description = str_(model.description);
+      }
+    }
   }
 
   /**
