@@ -6,17 +6,16 @@
 
 import {Protocol as Crdp} from 'devtools-protocol/types/protocol.js';
 import * as TraceEngine from '@paulirish/trace_engine';
+import * as Lantern from '../core/lib/lantern/lantern.js';
 import {LayoutShiftRootCausesData} from '@paulirish/trace_engine/models/trace/root-causes/LayoutShift.js';
 
 import {parseManifest} from '../core/lib/manifest-parser.js';
-import {Simulator} from '../core/lib/lantern/simulator/simulator.js';
 import {LighthouseError} from '../core/lib/lh-error.js';
 import {NetworkRequest as _NetworkRequest} from '../core/lib/network-request.js';
 import speedline from 'speedline-core';
 import * as CDTSourceMap from '../core/lib/cdt/generated/SourceMap.js';
 import {ArbitraryEqualityMap} from '../core/lib/arbitrary-equality-map.js';
 import type { TaskNode as _TaskNode } from '../core/lib/tracehouse/main-thread-tasks.js';
-import type {EnabledHandlers} from '../core/computed/trace-engine-result.js';
 import AuditDetails from './lhr/audit-details.js'
 import Config from './config.js';
 import Gatherer from './gatherer.js';
@@ -164,7 +163,7 @@ declare module Artifacts {
 
   type NetworkRequest = _NetworkRequest;
   type TaskNode = _TaskNode;
-  type TBTImpactTask = TaskNode & {tbtImpact: number, selfTbtImpact: number};
+  type TBTImpactTask = TaskNode & {tbtImpact: number, selfTbtImpact: number, selfBlockingTime: number};
   type MetaElement = Artifacts['MetaElements'][0];
 
   interface URL {
@@ -511,8 +510,8 @@ declare module Artifacts {
   }
 
   interface TraceEngineResult {
-    data: TraceEngine.Handlers.Types.EnabledHandlerDataWithMeta<EnabledHandlers>;
-    insights: TraceEngine.Insights.Types.TraceInsightData<EnabledHandlers>;
+    data: TraceEngine.Handlers.Types.ParsedTrace;
+    insights: TraceEngine.Insights.Types.TraceInsightSets;
   }
 
   interface TraceEngineRootCauses {
@@ -545,6 +544,7 @@ declare module Artifacts {
     propertyRuleIssue: Crdp.Audits.PropertyRuleIssueDetails[],
     quirksModeIssue: Crdp.Audits.QuirksModeIssueDetails[];
     cookieIssue: Crdp.Audits.CookieIssueDetails[];
+    selectElementAccessibilityIssue: Crdp.Audits.SelectElementAccessibilityIssueDetails[];
     sharedArrayBufferIssue: Crdp.Audits.SharedArrayBufferIssueDetails[];
     sharedDictionaryIssue: Crdp.Audits.SharedDictionaryIssueDetails[];
     stylesheetLoadingIssue: Crdp.Audits.StylesheetLoadingIssueDetails[];
@@ -566,7 +566,7 @@ declare module Artifacts {
     trace: Trace;
     settings: Audit.Context['settings'];
     gatherContext: Artifacts['GatherContext'];
-    simulator?: InstanceType<typeof Simulator>;
+    simulator?: Gatherer.Simulation.Simulator;
     URL: Artifacts['URL'];
   }
 
@@ -592,14 +592,7 @@ declare module Artifacts {
     throughput: number;
   }
 
-  interface LanternMetric {
-    timing: number;
-    timestamp?: never;
-    optimisticEstimate: Gatherer.Simulation.Result
-    pessimisticEstimate: Gatherer.Simulation.Result;
-    optimisticGraph: Gatherer.Simulation.GraphNode;
-    pessimisticGraph: Gatherer.Simulation.GraphNode;
-  }
+  type LanternMetric = Lantern.Metrics.MetricResult<Artifacts.NetworkRequest>;
 
   type Speedline = speedline.Output<'speedIndex'>;
 
@@ -613,7 +606,6 @@ declare module Artifacts {
     firstPaint?: number;
     firstContentfulPaint: number;
     firstContentfulPaintAllFrames: number;
-    firstMeaningfulPaint?: number;
     largestContentfulPaint?: number;
     largestContentfulPaintAllFrames?: number;
     traceEnd: number;
@@ -657,8 +649,6 @@ declare module Artifacts {
     firstContentfulPaintEvt: TraceEvent;
     /** The trace event marking firstContentfulPaint from all frames, if it was found. */
     firstContentfulPaintAllFramesEvt: TraceEvent;
-    /** The trace event marking firstMeaningfulPaint, if it was found. */
-    firstMeaningfulPaintEvt?: TraceEvent;
     /** The trace event marking largestContentfulPaint, if it was found. */
     largestContentfulPaintEvt?: TraceEvent;
     /** The trace event marking largestContentfulPaint from all frames, if it was found. */
@@ -667,11 +657,6 @@ declare module Artifacts {
     loadEvt?: TraceEvent;
     /** The trace event marking domContentLoadedEventEnd, if it was found. */
     domContentLoadedEvt?: TraceEvent;
-    /**
-     * Whether the firstMeaningfulPaintEvt was the definitive event or a fallback to
-     * firstMeaningfulPaintCandidate events had to be attempted.
-     */
-    fmpFellBack: boolean;
     /** Whether LCP was invalidated without a new candidate. */
     lcpInvalidated: boolean;
   }
@@ -695,8 +680,6 @@ declare module Artifacts {
     firstContentfulPaintTs: number | undefined;
     firstContentfulPaintAllFrames: number | undefined;
     firstContentfulPaintAllFramesTs: number | undefined;
-    firstMeaningfulPaint: number | undefined;
-    firstMeaningfulPaintTs: number | undefined;
     largestContentfulPaint: number | undefined;
     largestContentfulPaintTs: number | undefined;
     largestContentfulPaintAllFrames: number | undefined;
@@ -725,8 +708,6 @@ declare module Artifacts {
     observedFirstContentfulPaintTs: number | undefined;
     observedFirstContentfulPaintAllFrames: number | undefined;
     observedFirstContentfulPaintAllFramesTs: number | undefined;
-    observedFirstMeaningfulPaint: number | undefined;
-    observedFirstMeaningfulPaintTs: number | undefined;
     observedLargestContentfulPaint: number | undefined;
     observedLargestContentfulPaintTs: number | undefined;
     observedLargestContentfulPaintAllFrames: number | undefined;
@@ -942,6 +923,22 @@ export interface TraceEvent {
       name?: string;
       duration?: number;
       blockingDuration?: number;
+      candidateIndex?: number;
+      priority?: string;
+      requestMethod?: string;
+      resourceType?: string;
+      fromCache?: boolean;
+      fromServiceWorker?: boolean;
+      mimeType?: string;
+      statusCode?: number;
+      timing?: any;
+      connectionId?: number;
+      connectionReused?: boolean;
+      encodedDataLength?: number;
+      decodedBodyLength?: number;
+      initiator?: {type: string, url?: string, stack?: any};
+      protocol?: string;
+      finishTime?: number;
     };
     frame?: string;
     name?: string;

@@ -190,10 +190,12 @@ describe('Individual modes API', function() {
         // @ts-expect-error
         .sort((a, b) => a.url.localeCompare(b.url));
 
-      // These results will differ slightly from `yarn smoke oopif-scripts`
-      // The main worker requests will be assigned to the worker instead of the worker's parent
-      // This is because this test launches Chrome using puppeteer instead of Chrome launcher,
-      // and Puppeteer uses the flag `--disable-field-trial-config`
+      // These results can change depending on which Chrome version is used.
+      // The expectation here is tuned for Chromium 133.0.6876.0
+      //
+      // Using an older Chromium version can change which target the root
+      // worker requests are associated with.
+      // (also depends on --disable-field-trial-config for older versions)
       expect(networkRequests).toMatchInlineSnapshot(`
 Array [
   Object {
@@ -209,7 +211,7 @@ Array [
     "url": "http://localhost:10200/simple-script.js?importScripts",
   },
   Object {
-    "sessionTargetType": "page",
+    "sessionTargetType": "worker",
     "url": "http://localhost:10200/simple-worker.js",
   },
   Object {
@@ -229,7 +231,7 @@ Array [
     "url": "http://localhost:10503/simple-script.js?importScripts",
   },
   Object {
-    "sessionTargetType": "iframe",
+    "sessionTargetType": "worker",
     "url": "http://localhost:10503/simple-worker.js",
   },
   Object {
