@@ -13,7 +13,6 @@ import {
   waitFor,
   waitForElementWithTextContent,
 } from '../../shared/helper.js';
-import {describe} from '../../shared/mocha-extensions.js';
 import {
   clickStartButton,
   getAuditsBreakdown,
@@ -72,12 +71,8 @@ describe('Navigation', function() {
     await navigateToLighthouseTab('lighthouse/hello.html');
     await registerServiceWorker();
 
-    await selectCategories([
-      'performance',
-      'accessibility',
-      'best-practices',
-      'seo',
-    ]);
+    await waitFor('.lighthouse-start-view');
+    // We don't call selectCategories explicitly, but it's implied we leave all the checkboxes checked
 
     let numNavigations = 0;
     const {target} = getBrowserAndPages();
@@ -89,13 +84,17 @@ describe('Navigation', function() {
 
     const {lhr, artifacts, reportEl} = await waitForResult();
 
+    const receivedCategories = Array.from(Object.keys(lhr.categories)).sort();
+    const sentCategories = Array.from(lhr.configSettings.onlyCategories).sort();
+    assert.deepStrictEqual(receivedCategories, sentCategories);
+
     // 1 initial about:blank jump
     // 1 navigation for the actual page load
     // 2 navigations to go to chrome://terms and back testing bfcache
     // 1 refresh after auditing to reset state
     assert.strictEqual(numNavigations, 5);
 
-    assert.strictEqual(lhr.lighthouseVersion, '12.0.0');
+    assert.strictEqual(lhr.lighthouseVersion, '12.3.0');
     assert.match(lhr.finalUrl, /^https:\/\/localhost:[0-9]+\/test\/e2e\/resources\/lighthouse\/hello.html/);
 
     assert.strictEqual(lhr.configSettings.throttlingMethod, 'simulate');
@@ -121,7 +120,7 @@ describe('Navigation', function() {
     });
 
     const {auditResults, erroredAudits, failedAudits} = getAuditsBreakdown(lhr, ['max-potential-fid']);
-    assert.strictEqual(auditResults.length, 155);
+    assert.strictEqual(auditResults.length, 172);
     assert.deepStrictEqual(erroredAudits, []);
     assert.deepStrictEqual(failedAudits.map(audit => audit.id), [
       'document-title',
@@ -195,11 +194,12 @@ describe('Navigation', function() {
     const flakyAudits = [
       'server-response-time',
       'render-blocking-resources',
+      'render-blocking-insight',
       'max-potential-fid',
     ];
 
     const {auditResults, erroredAudits, failedAudits} = getAuditsBreakdown(lhr, flakyAudits);
-    assert.strictEqual(auditResults.length, 155);
+    assert.strictEqual(auditResults.length, 172);
     assert.deepStrictEqual(erroredAudits, []);
     assert.deepStrictEqual(failedAudits.map(audit => audit.id), [
       'document-title',
