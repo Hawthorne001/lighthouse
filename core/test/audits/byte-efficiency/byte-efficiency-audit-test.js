@@ -6,8 +6,8 @@
 
 import assert from 'assert/strict';
 
+import * as Lantern from '../../../lib/lantern/lantern.js';
 import {ByteEfficiencyAudit as ByteEfficiencyAudit_} from '../../../audits/byte-efficiency/byte-efficiency-audit.js';
-import {Simulator} from '../../../lib/lantern/simulator/simulator.js';
 import {LoadSimulator} from '../../../computed/load-simulator.js';
 import {getURLArtifactFromDevtoolsLog, readJson} from '../../test-utils.js';
 import {networkRecordsToDevtoolsLog} from '../../network-records-to-devtools-log.js';
@@ -29,7 +29,7 @@ describe('Byte efficiency base audit', () => {
 
   beforeEach(() => {
     const mainDocumentUrl = 'http://example.com/';
-    const devtoolsLog = networkRecordsToDevtoolsLog([
+    const networkRecords = [
       {
         requestId: '1',
         url: mainDocumentUrl,
@@ -60,13 +60,15 @@ describe('Byte efficiency base audit', () => {
         frameId: rootFrame,
         timing: {sendEnd: 0},
       },
-    ]);
+    ];
+    const devtoolsLog = networkRecordsToDevtoolsLog(networkRecords);
 
     const trace = createTestTrace({
       frameUrl: mainDocumentUrl,
       // add a CPU node to force improvement to TTI
       topLevelTasks: [{ts: 0, duration: 100_000}],
       largestContentfulPaint: 3000,
+      networkRecords,
     });
 
     metricComputationInput = {
@@ -81,7 +83,7 @@ describe('Byte efficiency base audit', () => {
       settings: JSON.parse(JSON.stringify(defaultSettings)),
     };
 
-    simulator = new Simulator({});
+    simulator = new Lantern.Simulation.Simulator({});
   });
 
   const baseHeadings = [
@@ -124,7 +126,7 @@ describe('Byte efficiency base audit', () => {
     }, simulator, metricComputationInput, {computedCache: new Map()});
 
     assert.equal(result.metricSavings.FCP, 900);
-    assert.equal(result.metricSavings.LCP, 1350);
+    assert.equal(result.metricSavings.LCP, 900);
   });
 
   it('should use LCP request savings if larger than LCP graph savings', async () => {
