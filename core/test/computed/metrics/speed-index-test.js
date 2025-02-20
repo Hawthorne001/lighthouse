@@ -9,8 +9,8 @@ import {getURLArtifactFromDevtoolsLog, readJson} from '../../test-utils.js';
 
 const trace = readJson('../../fixtures/artifacts/progressive-app/trace.json', import.meta);
 const devtoolsLog = readJson('../../fixtures/artifacts/progressive-app/devtoolslog.json', import.meta);
-const trace1msLayout = readJson('../../fixtures/traces/speedindex-1ms-layout-m84.trace.json', import.meta);
-const devtoolsLog1msLayout = readJson('../../fixtures/traces/speedindex-1ms-layout-m84.devtoolslog.json', import.meta); // eslint-disable-line max-len
+const trace1msLayout = readJson('../../fixtures/artifacts/speedindex-1ms/trace.json.gz', import.meta);
+const devtoolsLog1msLayout = readJson('../../fixtures/artifacts/speedindex-1ms/devtoolslog.json.gz', import.meta); // eslint-disable-line max-len
 
 describe('Metrics: Speed Index', () => {
   const gatherContext = {gatherMode: 'navigation'};
@@ -63,9 +63,9 @@ Object {
       pessimistic: Math.round(result.pessimisticEstimate.timeInMs),
     }).toMatchInlineSnapshot(`
       Object {
-        "optimistic": 575,
-        "pessimistic": 633,
-        "timing": 642,
+        "optimistic": 397,
+        "pessimistic": 805,
+        "timing": 805,
       }
     `);
   });
