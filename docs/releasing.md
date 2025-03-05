@@ -36,7 +36,11 @@ We follow [semver](https://semver.org/) versioning semantics (`vMajor.Minor.Patc
 
 ### Update various dependencies
 
-In general, Lighthouse should be using the latest version of all of these dependencies:
+In general, Lighthouse should be using the latest version of its critical dependencies. These are listed in the following script. It's ok to not be on the very latest, use your judgement.
+
+```sh
+bash core/scripts/upgrade-deps.sh
+```
 
 1. https://github.com/GoogleChrome/lighthouse-stack-packs
 1. `puppeteer` and `puppeteer-core`
@@ -46,6 +50,7 @@ In general, Lighthouse should be using the latest version of all of these depend
 1. `chrome-launcher`
 1. `chrome-devtools-frontend`
 1. `devtools-protocol`
+1. `csp_evaluator`
 
 ### On the scheduled release date
 
@@ -89,7 +94,7 @@ git status
 git log
 
 # Publish tag.
-git push --follow-tags
+git push --tags
 
 # Publish to npm.
 npm publish
@@ -137,7 +142,7 @@ yarn devtools ~/src/devtools/devtools-frontend
 cd ~/src/devtools/devtools-frontend
 git new-branch rls
 git commit -am "[Lighthouse] Roll Lighthouse x.x.x"
-git cl upload -b 772558
+git cl upload -b 40543651
 ```
 
 ### Lightrider

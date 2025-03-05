@@ -79,7 +79,7 @@ function mockBlockedByResponse(details) {
     code: 'BlockedByResponseIssue',
     details: {
       blockedByResponseIssueDetails: {
-        request: {requestId: '1'},
+        request: {requestId: '1', url: 'https://example.com/1'},
         reason: 'CorpNotSameOrigin',
         ...details,
       },
@@ -177,9 +177,9 @@ describe('getArtifact', () => {
   it('handles multiple types of inspector issues', async () => {
     const gatherer = new InspectorIssues();
     gatherer._issues = [
-      mockMixedContent({request: {requestId: '1'}}),
-      mockCookie({request: {requestId: '2'}}),
-      mockBlockedByResponse({request: {requestId: '3'}}),
+      mockMixedContent({request: {requestId: '1', url: 'https://example.com/1'}}),
+      mockCookie({request: {requestId: '2', url: 'https://example.com/2'}}),
+      mockBlockedByResponse({request: {requestId: '3', url: 'https://example.com/3'}}),
       mockHeavyAd(),
       mockCSP(),
       mockDeprecation('AuthorizationCoveredByWildcard'),
@@ -199,13 +199,13 @@ describe('getArtifact', () => {
 
     expect(artifact).toEqual({
       mixedContentIssue: [{
-        request: {requestId: '1'},
+        request: {requestId: '1', url: 'https://example.com/1'},
         resolutionStatus: 'MixedContentBlocked',
         insecureURL: 'https://example.com',
         mainResourceURL: 'https://example.com',
       }],
       cookieIssue: [{
-        request: {requestId: '2'},
+        request: {requestId: '2', url: 'https://example.com/2'},
         cookie: {
           name: 'name',
           path: 'path',
@@ -217,7 +217,7 @@ describe('getArtifact', () => {
       }],
       bounceTrackingIssue: [],
       blockedByResponseIssue: [{
-        request: {requestId: '3'},
+        request: {requestId: '3', url: 'https://example.com/3'},
         reason: 'CorpNotSameOrigin',
       }],
       heavyAdIssue: [{
@@ -247,11 +247,14 @@ describe('getArtifact', () => {
       genericIssue: [],
       lowTextContrastIssue: [],
       navigatorUserAgentIssue: [],
+      partitioningBlobURLIssue: [],
       propertyRuleIssue: [],
       quirksModeIssue: [],
+      selectElementAccessibilityIssue: [],
       sharedArrayBufferIssue: [],
       sharedDictionaryIssue: [],
       federatedAuthRequestIssue: [],
+      sriMessageSignatureIssue: [],
       stylesheetLoadingIssue: [],
       federatedAuthUserInfoRequestIssue: [],
     });
@@ -260,12 +263,12 @@ describe('getArtifact', () => {
   it('dedupe by request id', async () => {
     const gatherer = new InspectorIssues();
     gatherer._issues = [
-      mockMixedContent({request: {requestId: '1'}}),
-      mockMixedContent({request: {requestId: '2'}}),
-      mockCookie({request: {requestId: '3'}}),
-      mockCookie({request: {requestId: '4'}}),
-      mockBlockedByResponse({request: {requestId: '5'}}),
-      mockBlockedByResponse({request: {requestId: '6'}}),
+      mockMixedContent({request: {requestId: '1', url: 'https://example.com/1'}}),
+      mockMixedContent({request: {requestId: '2', url: 'https://example.com/2'}}),
+      mockCookie({request: {requestId: '3', url: 'https://example.com/3'}}),
+      mockCookie({request: {requestId: '4', url: 'https://example.com/4'}}),
+      mockBlockedByResponse({request: {requestId: '5', url: 'https://example.com/5'}}),
+      mockBlockedByResponse({request: {requestId: '6', url: 'https://example.com/6'}}),
     ];
     const devtoolsLog = networkRecordsToDevtoolsLog([
       mockRequest({requestId: '1'}),
@@ -282,13 +285,13 @@ describe('getArtifact', () => {
 
     expect(artifact).toEqual({
       mixedContentIssue: [{
-        request: {requestId: '1'},
+        request: {requestId: '1', url: 'https://example.com/1'},
         resolutionStatus: 'MixedContentBlocked',
         insecureURL: 'https://example.com',
         mainResourceURL: 'https://example.com',
       }],
       cookieIssue: [{
-        request: {requestId: '3'},
+        request: {requestId: '3', url: 'https://example.com/3'},
         cookie: {
           name: 'name',
           path: 'path',
@@ -300,7 +303,7 @@ describe('getArtifact', () => {
       }],
       bounceTrackingIssue: [],
       blockedByResponseIssue: [{
-        request: {requestId: '5'},
+        request: {requestId: '5', url: 'https://example.com/5'},
         reason: 'CorpNotSameOrigin',
       }],
       heavyAdIssue: [],
@@ -313,11 +316,14 @@ describe('getArtifact', () => {
       genericIssue: [],
       lowTextContrastIssue: [],
       navigatorUserAgentIssue: [],
+      partitioningBlobURLIssue: [],
       propertyRuleIssue: [],
       quirksModeIssue: [],
+      selectElementAccessibilityIssue: [],
       sharedArrayBufferIssue: [],
       sharedDictionaryIssue: [],
       federatedAuthRequestIssue: [],
+      sriMessageSignatureIssue: [],
       stylesheetLoadingIssue: [],
       federatedAuthUserInfoRequestIssue: [],
     });
